@@ -1,0 +1,128 @@
+# GraphQL schema for Talk and Grow Portal
+# This schema defines the data structure for the job referral platform
+
+type User @model @auth(rules: [{ allow: owner }]) {
+  id: ID!
+  email: String! @index(name: "byEmail", queryField: "userByEmail")
+  fullName: String
+  phone: String
+  university: String
+  graduationYear: Int
+  skills: [String]
+  experienceLevel: ExperienceLevel
+  resumeUrl: String
+  points: Int @default(value: 0)
+  level: Int @default(value: 1)
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  
+  # Relationships
+  applications: [Application] @hasMany(indexName: "byUser", fields: ["id"])
+  achievements: [UserAchievement] @hasMany(indexName: "byUser", fields: ["id"])
+  skillGaps: [SkillGap] @hasMany(indexName: "byUser", fields: ["id"])
+}
+
+type Job @model @auth(rules: [{ allow: public, operations: [read] }, { allow: owner, operations: [create, update, delete] }]) {
+  id: ID!
+  title: String!
+  company: String!
+  description: String
+  requirements: [String]
+  skillsRequired: [String]
+  location: String
+  jobType: JobType!
+  salaryRange: String
+  postedBy: ID! @index(name: "byPostedBy", queryField: "jobsByPostedBy")
+  isActive: Boolean! @default(value: true)
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  
+  # Relationships
+  applications: [Application] @hasMany(indexName: "byJob", fields: ["id"])
+  skillGaps: [SkillGap] @hasMany(indexName: "byJob", fields: ["id"])
+}
+
+type Application @model @auth(rules: [{ allow: owner }, { allow: owner, ownerField: "jobPostedBy", operations: [read, update] }]) {
+  id: ID!
+  jobId: ID! @index(name: "byJob", sortKeyFields: ["createdAt"])
+  userId: ID! @index(name: "byUser", sortKeyFields: ["createdAt"])
+  status: ApplicationStatus! @default(value: APPLIED)
+  matchScore: Int
+  coverLetter: String
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  
+  # Relationships
+  job: Job @belongsTo(fields: ["jobId"])
+  user: User @belongsTo(fields: ["userId"])
+}
+
+type Achievement @model @auth(rules: [{ allow: public, operations: [read] }]) {
+  id: ID!
+  name: String!
+  description: String
+  icon: String
+  pointsReward: Int! @default(value: 0)
+  requirementType: RequirementType!
+  requirementValue: Int! @default(value: 1)
+  createdAt: AWSDateTime!
+  
+  # Relationships
+  userAchievements: [UserAchievement] @hasMany(indexName: "byAchievement", fields: ["id"])
+}
+
+type UserAchievement @model @auth(rules: [{ allow: owner }]) {
+  id: ID!
+  userId: ID! @index(name: "byUser", sortKeyFields: ["earnedAt"])
+  achievementId: ID! @index(name: "byAchievement", sortKeyFields: ["earnedAt"])
+  earnedAt: AWSDateTime!
+  
+  # Relationships
+  user: User @belongsTo(fields: ["userId"])
+  achievement: Achievement @belongsTo(fields: ["achievementId"])
+}
+
+type SkillGap @model @auth(rules: [{ allow: owner }]) {
+  id: ID!
+  userId: ID! @index(name: "byUser", sortKeyFields: ["createdAt"])
+  jobId: ID! @index(name: "byJob", sortKeyFields: ["createdAt"])
+  missingSkills: [String]
+  recommendedResources: AWSJSON
+  createdAt: AWSDateTime!
+  
+  # Relationships
+  user: User @belongsTo(fields: ["userId"])
+  job: Job @belongsTo(fields: ["jobId"])
+}
+
+# Enums
+enum ExperienceLevel {
+  FRESHER
+  ENTRY
+  MID
+  SENIOR
+}
+
+enum JobType {
+  INTERNSHIP
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+}
+
+enum ApplicationStatus {
+  APPLIED
+  REVIEWED
+  REFERRED
+  INTERVIEW
+  HIRED
+  REJECTED
+}
+
+enum RequirementType {
+  PROFILE_COMPLETE
+  FIRST_APPLICATION
+  REFERRAL_ACCEPTED
+  JOB_SECURED
+  SKILL_MILESTONE
+}

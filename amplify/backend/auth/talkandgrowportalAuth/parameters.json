@@ -1,0 +1,48 @@
+{
+  "identityPoolName": "talkandgrowportalAuth_identitypool_",
+  "allowUnauthenticatedIdentities": false,
+  "resourceNameTruncated": "talkand",
+  "userPoolName": "talkandgrowportalAuth_userpool_",
+  "autoVerifiedAttributes": [
+    "email"
+  ],
+  "mfaConfiguration": "OFF",
+  "mfaTypes": [
+    "SMS"
+  ],
+  "smsAuthenticationMessage": "Your authentication code is {####}",
+  "smsVerificationMessage": "Your verification code is {####}",
+  "emailVerificationSubject": "Your verification code",
+  "emailVerificationMessage": "Your verification code is {####}",
+  "defaultPasswordPolicy": false,
+  "passwordPolicyMinLength": 8,
+  "passwordPolicyCharacters": [],
+  "requiredAttributes": [
+    "email",
+    "name"
+  ],
+  "aliasAttributes": [],
+  "userpoolClientGenerateSecret": false,
+  "userpoolClientRefreshTokenValidity": 30,
+  "userpoolClientWriteAttributes": [
+    "email",
+    "name"
+  ],
+  "userpoolClientReadAttributes": [
+    "email",
+    "name"
+  ],
+  "userpoolClientLambdaRole": "talkandgrowportalAuth_userpoolclient_lambda_role",
+  "userpoolClientSetAttributes": false,
+  "sharedId": "talkandgrowportalAuth",
+  "resourceName": "talkandgrowportalAuth",
+  "authSelections": "identityPoolAndUserPool",
+  "useDefault": "default",
+  "usernameAttributes": [
+    "email"
+  ],
+  "userPoolGroupList": [],
+  "serviceName": "Cognito",
+  "usernameCaseSensitive": false,
+  "useEnabledMfas": true
+}

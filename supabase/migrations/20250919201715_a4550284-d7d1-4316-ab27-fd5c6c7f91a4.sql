@@ -89,6 +89,7 @@ ALTER TABLE public.skill_gaps ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own profile" ON public.profiles FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "System can insert profiles during registration" ON public.profiles FOR INSERT WITH CHECK (true);
 
 -- Create RLS policies for jobs
 CREATE POLICY "Anyone can view active jobs" ON public.jobs FOR SELECT USING (is_active = true);
@@ -152,7 +153,7 @@ BEGIN
   VALUES (NEW.id, NEW.raw_user_meta_data ->> 'full_name', NEW.email);
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SET search_path = public;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Create trigger for new user registration
 CREATE TRIGGER on_auth_user_created

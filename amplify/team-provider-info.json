@@ -1,0 +1,39 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-talkandgrowportal-dev-xxxxx-authRole",
+      "UnauthRoleName": "amplify-talkandgrowportal-dev-xxxxx-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::xxxxxxxxxx:role/amplify-talkandgrowportal-dev-xxxxx-authRole",
+      "UnauthRoleArn": "arn:aws:iam::xxxxxxxxxx:role/amplify-talkandgrowportal-dev-xxxxx-unauthRole",
+      "region": "us-east-1",
+      "DeploymentBucketName": "amplify-talkandgrowportal-dev-xxxxx-deployment",
+      "UnauthRoleName": "amplify-talkandgrowportal-dev-xxxxx-unauthRole",
+      "StackName": "amplify-talkandgrowportal-dev-xxxxx",
+      "StackId": "arn:aws:cloudformation:us-east-1:xxxxxxxxxx:stack/amplify-talkandgrowportal-dev-xxxxx/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "AmplifyAppId": "xxxxxxxxxxxxxxxxxx"
+    },
+    "auth": {
+      "talkandgrowportalAuth": {
+        "UserPoolId": "us-east-1_XXXXXXXXX",
+        "UserPoolArn": "arn:aws:cognito-idp:us-east-1:xxxxxxxxxx:userpool/us-east-1_XXXXXXXXX",
+        "UserPoolName": "talkandgrowportalAuth_userpool_",
+        "AppClientIDWeb": "xxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "AppClientID": "xxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "IdentityPoolId": "us-east-1:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      }
+    },
+    "storage": {
+      "resumes": {
+        "BucketName": "talkandgrowportalresumes",
+        "Region": "us-east-1"
+      }
+    },
+    "api": {
+      "talkandgrowportal": {
+        "GraphQLAPIIdOutput": "xxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "GraphQLAPIEndpointOutput": "https://xxxxxxxxxxxxxxxxxxxxxxxxxx.appsync-api.us-east-1.amazonaws.com/graphql",
+        "GraphQLAPIKeyOutput": "da2-xxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    }
+  }
+}

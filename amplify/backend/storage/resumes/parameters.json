@@ -1,0 +1,10 @@
+{
+  "bucketName": "talkandgrowportalresumes",
+  "storageAccess": "auth",
+  "guestAccess": [],
+  "authAccess": [
+    "CREATE_AND_UPDATE",
+    "READ",
+    "DELETE"
+  ]
+}
