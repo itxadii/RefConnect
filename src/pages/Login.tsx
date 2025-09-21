@@ -17,15 +17,15 @@ const Login = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   
-  const { signIn, user } = useAuth();
+  const { signIn, user, loading } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (user) {
+    if (!loading && user) {
       navigate('/dashboard');
     }
-  }, [user, navigate]);
+  }, [loading, user, navigate]);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

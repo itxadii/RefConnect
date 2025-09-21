@@ -54,11 +54,6 @@ const Jobs = () => {
   };
 
   const handleApply = async (jobId: string) => {
-    if (!profile?.resume_url) {
-      alert('Please upload your resume first to apply for jobs.');
-      return;
-    }
-    
     await submitApplication(jobId);
   };
 
@@ -186,27 +181,27 @@ const Jobs = () => {
                               {job.location}
                             </div>
                           )}
-                          {job.job_type && (
+                          {job.jobType && (
                             <div className="flex items-center gap-1">
                               <Clock className="w-4 h-4" />
-                              {job.job_type}
+                              {job.jobType}
                             </div>
                           )}
-                          {job.salary_range && (
+                          {job.salaryRange && (
                             <div className="flex items-center gap-1">
                               <DollarSign className="w-4 h-4" />
-                              {job.salary_range}
+                              {job.salaryRange}
                             </div>
                           )}
                           <div className="flex items-center gap-1">
                             <Clock className="w-4 h-4" />
-                            Posted {new Date(job.created_at).toLocaleDateString()}
+                            Posted {new Date(job.createdAt).toLocaleDateString()}
                           </div>
                         </div>
 
-                        {job.skills_required && job.skills_required.length > 0 && (
+                        {job.skillsRequired && job.skillsRequired.length > 0 && (
                           <div className="flex flex-wrap gap-2 mb-4">
-                            {job.skills_required.map(skill => (
+                            {job.skillsRequired.map(skill => (
                               <Badge key={skill} variant="secondary" className="text-xs">
                                 {skill}
                               </Badge>

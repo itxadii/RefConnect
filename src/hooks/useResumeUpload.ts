@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useAmplifyStorage } from '@/hooks/useAmplifyStorage';
+import { remove } from 'aws-amplify/storage';
 
 export const useResumeUpload = () => {
   const [uploading, setUploading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { uploadResume: uploadToStorage } = useAmplifyStorage();
 
-  const uploadResume = async (file: File) => {
+  const uploadResume = async (file: File): Promise<string | null> => {
     if (!user) {
       toast({
         variant: "destructive",
@@ -21,37 +23,24 @@ export const useResumeUpload = () => {
     setUploading(true);
 
     try {
-      // Create unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/resume-${Date.now()}.${fileExt}`;
-
-      // Upload file to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('resumes')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
+      const DEMO_MODE = ((import.meta as any)?.env?.VITE_DEMO_MODE !== 'false');
+      if (DEMO_MODE) {
+        // Prototype: convert file to data URL and return
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
         });
-
-      if (uploadError) {
-        throw uploadError;
+        toast({ title: 'Resume ready (demo)', description: 'Stored locally for prototype.' });
+        return dataUrl;
       }
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('resumes')
-        .getPublicUrl(fileName);
+      // Upload file using Amplify Storage (non-demo)
+      const resumeUrl = await uploadToStorage(file, user.username);
 
-      const resumeUrl = urlData.publicUrl;
-
-      // Update profile with resume URL
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ resume_url: resumeUrl })
-        .eq('user_id', user.id);
-
-      if (updateError) {
-        throw updateError;
+      if (!resumeUrl) {
+        throw new Error('Failed to upload resume');
       }
 
       toast({
@@ -73,23 +62,11 @@ export const useResumeUpload = () => {
     }
   };
 
-  const deleteResume = async (filePath: string) => {
+  const deleteResume = async (filePath: string): Promise<void> => {
     if (!user) return;
 
     try {
-      const { error } = await supabase.storage
-        .from('resumes')
-        .remove([filePath]);
-
-      if (error) throw error;
-
-      // Remove resume URL from profile
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ resume_url: null })
-        .eq('user_id', user.id);
-
-      if (updateError) throw updateError;
+      await remove({ key: filePath });
 
       toast({
         title: "Success",

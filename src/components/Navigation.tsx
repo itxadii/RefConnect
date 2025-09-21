@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X, Award, Briefcase, User, BarChart3, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,7 +7,9 @@ import { useAuth } from "@/contexts/AuthContext";
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const { user, signOut, isAuthenticated } = useAuth();
+  const { user, profile, signOut, isAuthenticated } = useAuth();
+
+  const isAdmin = useMemo(() => profile?.role === 'admin', [profile]);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -17,6 +19,11 @@ const Navigation = () => {
     { path: "/dashboard", label: "Dashboard", icon: User },
     { path: "/rewards", label: "Rewards", icon: Award },
     { path: "/analytics", label: "Analytics", icon: BarChart3 },
+  ];
+
+  const adminNavItems = [
+    ...navItems,
+    { path: "/admin", label: "Admin Panel", icon: BarChart3 },
   ];
 
   return (
@@ -35,7 +42,7 @@ const Navigation = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
-            {navItems.map((item) => (
+            {(isAdmin ? adminNavItems : navItems).map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
@@ -56,7 +63,7 @@ const Navigation = () => {
             {isAuthenticated ? (
               <>
                 <span className="text-sm text-muted-foreground">
-                  Welcome, {user.user_metadata?.full_name || user.email}
+                  {`Welcome, ${profile?.fullName || user?.attributes?.name || user?.email || user?.username || 'User'}`}
                 </span>
                 <Button variant="ghost" onClick={signOut}>
                   <LogOut className="w-4 h-4 mr-2" />
@@ -88,7 +95,7 @@ const Navigation = () => {
         {isOpen && (
           <div className="md:hidden py-4 border-t border-border animate-fade-in">
             <div className="flex flex-col space-y-2">
-              {navItems.map((item) => (
+              {(isAdmin ? adminNavItems : navItems).map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
@@ -107,7 +114,7 @@ const Navigation = () => {
                 {isAuthenticated ? (
                   <>
                     <div className="px-4 py-2 text-sm text-muted-foreground">
-                      Welcome, {user.user_metadata?.full_name || user.email}
+                      {`Welcome, ${profile?.fullName || user?.attributes?.name || user?.email || user?.username || 'User'}`}
                     </div>
                     <Button variant="ghost" onClick={() => { signOut(); setIsOpen(false); }}>
                       <LogOut className="w-4 h-4 mr-2" />

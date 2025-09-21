@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { achievementsAPI } from '@/integrations/aws/api';
 
 export interface Achievement {
   id: string;
@@ -35,13 +35,19 @@ export const useAchievements = () => {
 
   const fetchAchievements = async () => {
     try {
-      const { data, error } = await supabase
-        .from('achievements')
-        .select('*')
-        .order('points_reward', { ascending: false });
-
-      if (error) throw error;
-      setAchievements(data || []);
+      const list = await achievementsAPI.getAll();
+      // Map camelCase (DB) to snake_case used by UI types
+      const mapped: Achievement[] = (list || []).map((a) => ({
+        id: a.id,
+        name: a.name,
+        description: a.description,
+        icon: a.icon,
+        points_reward: a.pointsReward,
+        requirement_type: a.requirementType,
+        requirement_value: a.requirementValue,
+        created_at: a.createdAt,
+      }));
+      setAchievements(mapped);
     } catch (error) {
       console.error('Error fetching achievements:', error);
     }
@@ -51,34 +57,48 @@ export const useAchievements = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('user_achievements')
-        .select(`
-          *,
-          achievements (
-            name,
-            description,
-            icon,
-            points_reward,
-            requirement_type
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('earned_at', { ascending: false });
+      const [userAchList, achievementsList] = await Promise.all([
+        achievementsAPI.getByUserId(user.userId),
+        achievementsAPI.getAll(),
+      ]);
 
-      if (error) throw error;
-      setUserAchievements(data || []);
+      const achMap = new Map(achievementsList.map(a => [a.id, a]));
+
+      const mapped: UserAchievement[] = (userAchList || [])
+        .sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime())
+        .map(ua => {
+          const a = achMap.get(ua.achievementId);
+          return {
+            id: ua.id,
+            user_id: ua.userId,
+            achievement_id: ua.achievementId,
+            earned_at: ua.earnedAt,
+            achievements: a ? {
+              name: a.name,
+              description: a.description || '',
+              icon: a.icon || '',
+              points_reward: a.pointsReward,
+              requirement_type: a.requirementType,
+            } : {
+              name: '', description: '', icon: '', points_reward: 0, requirement_type: ''
+            }
+          } as UserAchievement;
+        });
+
+      setUserAchievements(mapped);
     } catch (error) {
       console.error('Error fetching user achievements:', error);
     }
   };
 
   useEffect(() => {
-    fetchAchievements();
-    if (user) {
-      fetchUserAchievements();
-    }
-    setLoading(false);
+    (async () => {
+      await fetchAchievements();
+      if (user) {
+        await fetchUserAchievements();
+      }
+      setLoading(false);
+    })();
   }, [user]);
 
   return {

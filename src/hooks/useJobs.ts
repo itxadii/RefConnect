@@ -1,22 +1,9 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { jobsAPI } from '@/integrations/aws/api';
+import type { Job } from '@/integrations/aws/dynamodb';
 
-export interface Job {
-  id: string;
-  title: string;
-  company: string;
-  description?: string;
-  requirements?: string[];
-  skills_required?: string[];
-  location?: string;
-  job_type?: string;
-  salary_range?: string;
-  posted_by?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+// Job interface is now imported from api.ts
 
 export const useJobs = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -29,30 +16,80 @@ export const useJobs = () => {
     jobType?: string;
   }) => {
     try {
-      let query = supabase
-        .from('jobs')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+      const DEMO_MODE = ((import.meta as any)?.env?.VITE_DEMO_MODE !== 'false');
+      let allJobs: Job[] = [];
+      if (DEMO_MODE) {
+        const now = new Date().toISOString();
+        allJobs = [
+          {
+            id: 'job-demo-1',
+            title: 'Frontend Developer (React)',
+            company: 'RefConnect Labs',
+            description: 'Build delightful UIs with React and Tailwind.',
+            requirements: ['React', 'TypeScript', 'TailwindCSS'],
+            skillsRequired: ['React', 'TypeScript', 'TailwindCSS'],
+            location: 'Remote',
+            jobType: 'full-time',
+            salaryRange: '₹8L–₹16L',
+            postedBy: 'system',
+            isActive: true,
+            createdAt: now,
+            updatedAt: now,
+          },
+          {
+            id: 'job-demo-2',
+            title: 'Backend Engineer (Node.js)',
+            company: 'Acme Corp',
+            description: 'Design APIs and services with Node.js and AWS.',
+            requirements: ['Node.js', 'AWS', 'REST'],
+            skillsRequired: ['Node.js', 'AWS', 'DynamoDB'],
+            location: 'Bengaluru, IN',
+            jobType: 'full-time',
+            salaryRange: '₹12L–₹22L',
+            postedBy: 'system',
+            isActive: true,
+            createdAt: now,
+            updatedAt: now,
+          },
+          {
+            id: 'job-demo-3',
+            title: 'Data Analyst Intern',
+            company: 'DataWorks',
+            description: 'Analyze datasets and build dashboards.',
+            requirements: ['SQL', 'Excel', 'Visualization'],
+            skillsRequired: ['SQL', 'Python'],
+            location: 'Pune, IN',
+            jobType: 'internship',
+            salaryRange: '₹20k–₹30k / month',
+            postedBy: 'system',
+            isActive: true,
+            createdAt: now,
+            updatedAt: now,
+          },
+        ];
+      } else {
+        allJobs = await jobsAPI.getAll();
+      }
 
+      let filteredJobs = allJobs.filter(job => job.isActive);
+
+      // Apply filters
       if (filters?.search) {
-        query = query.or(`title.ilike.%${filters.search}%,company.ilike.%${filters.search}%`);
+        const searchLower = filters.search.toLowerCase();
+        filteredJobs = filteredJobs.filter(job => 
+          job.title.toLowerCase().includes(searchLower) ||
+          job.company.toLowerCase().includes(searchLower)
+        );
       }
 
       if (filters?.jobType) {
-        query = query.eq('job_type', filters.jobType);
+        filteredJobs = filteredJobs.filter(job => job.jobType === filters.jobType);
       }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      let filteredJobs = data || [];
 
       // Filter by skills if provided
       if (filters?.skills && filters.skills.length > 0) {
         filteredJobs = filteredJobs.filter(job => 
-          job.skills_required?.some(skill => 
+          job.skillsRequired?.some(skill => 
             filters.skills!.some(filterSkill => 
               skill.toLowerCase().includes(filterSkill.toLowerCase())
             )
@@ -60,16 +97,65 @@ export const useJobs = () => {
         );
       }
 
+      // Sort by created date (newest first)
+      filteredJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
       setJobs(filteredJobs);
     } catch (error) {
       console.error('Error fetching jobs:', error);
+      // As a last-resort fallback, present demo data to keep the UI working
+      const now = new Date().toISOString();
+      const demo: Job[] = [
+        {
+          id: 'job-fallback-1',
+          title: 'Junior Developer',
+          company: 'Fallback Inc.',
+          description: 'Entry-level developer role.',
+          requirements: ['JavaScript'],
+          skillsRequired: ['JavaScript'],
+          location: 'Remote',
+          jobType: 'full-time',
+          salaryRange: '₹5L–₹8L',
+          postedBy: 'system',
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ];
+      setJobs(demo);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createJob = async (jobData: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const DEMO_MODE = ((import.meta as any)?.env?.VITE_DEMO_MODE !== 'false');
+      if (DEMO_MODE) {
+        const now = new Date().toISOString();
+        const newJob: Job = {
+          ...(jobData as Job),
+          id: `job-demo-${Date.now()}`,
+          createdAt: now,
+          updatedAt: now,
+          isActive: (jobData as any).isActive ?? true,
+          postedBy: (jobData as any).postedBy ?? 'system',
+        };
+        setJobs(prev => [newJob, ...prev]);
+        return newJob;
+      } else {
+        const newJob = await jobsAPI.create(jobData);
+        setJobs(prev => [newJob, ...prev]);
+        return newJob;
+      }
+    } catch (error) {
+      console.error('Error creating job:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load jobs.",
+        description: "Failed to create job.",
       });
-    } finally {
-      setLoading(false);
+      throw error;
     }
   };
 
@@ -81,5 +167,7 @@ export const useJobs = () => {
     jobs,
     loading,
     fetchJobs,
+    createJob,
+    refetch: fetchJobs,
   };
 };

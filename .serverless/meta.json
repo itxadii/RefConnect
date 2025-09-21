@@ -1,0 +1,605 @@
+{
+  "C:\\Users\\Admin\\Desktop\\talk-and-grow-portal\\serverless.yml": {
+    "versionFramework": "4.19.1",
+    "servicePath": "C:\\Users\\Admin\\Desktop\\talk-and-grow-portal\\serverless.yml",
+    "serviceConfigFileName": "serverless.yml",
+    "service": {
+      "service": "talkandgrow-portal-api",
+      "provider": {
+        "name": "aws",
+        "runtime": "nodejs18.x",
+        "region": "us-east-1",
+        "stage": "dev",
+        "environment": {
+          "PROFILES_TABLE": "${self:custom.tables.profiles}",
+          "JOBS_TABLE": "${self:custom.tables.jobs}",
+          "APPLICATIONS_TABLE": "${self:custom.tables.applications}",
+          "ACHIEVEMENTS_TABLE": "${self:custom.tables.achievements}",
+          "USER_ACHIEVEMENTS_TABLE": "${self:custom.tables.userAchievements}",
+          "SKILL_GAPS_TABLE": "${self:custom.tables.skillGaps}",
+          "USER_POOL_ID": "${self:custom.cognito.userPoolId}",
+          "USER_POOL_CLIENT_ID": "${self:custom.cognito.userPoolClientId}",
+          "IDENTITY_POOL_ID": "${self:custom.cognito.identityPoolId}"
+        },
+        "iamRoleStatements": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "dynamodb:Query",
+              "dynamodb:Scan",
+              "dynamodb:GetItem",
+              "dynamodb:PutItem",
+              "dynamodb:UpdateItem",
+              "dynamodb:DeleteItem",
+              "dynamodb:BatchGetItem"
+            ],
+            "Resource": [
+              "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.profiles}",
+              "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.jobs}",
+              "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.applications}",
+              "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.achievements}",
+              "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.userAchievements}",
+              "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.skillGaps}",
+              "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.profiles}/index/*",
+              "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.jobs}/index/*",
+              "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.applications}/index/*",
+              "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.userAchievements}/index/*",
+              "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.skillGaps}/index/*"
+            ]
+          }
+        ]
+      },
+      "custom": {
+        "tables": {
+          "profiles": "talkandgrow-portal-profiles-dev",
+          "jobs": "talkandgrow-portal-jobs-dev",
+          "applications": "talkandgrow-portal-applications-dev",
+          "achievements": "talkandgrow-portal-achievements-dev",
+          "userAchievements": "talkandgrow-portal-user-achievements-dev",
+          "skillGaps": "talkandgrow-portal-skill-gaps-dev"
+        },
+        "cognito": {
+          "userPoolId": "${env:USER_POOL_ID}",
+          "userPoolClientId": "${env:USER_POOL_CLIENT_ID}",
+          "identityPoolId": "${env:IDENTITY_POOL_ID}"
+        }
+      },
+      "functions": {
+        "profiles": {
+          "handler": "lambda/functions/profiles/handler.handler",
+          "events": [
+            {
+              "http": {
+                "path": "profiles",
+                "method": "ANY",
+                "cors": true,
+                "authorizer": {
+                  "name": "CognitoAuthorizer",
+                  "type": "COGNITO_USER_POOLS",
+                  "arn": "arn:aws:cognito-idp:us-east-1:${aws:accountId}:userpool/${self:custom.cognito.userPoolId}"
+                }
+              }
+            }
+          ]
+        },
+        "jobs": {
+          "handler": "lambda/functions/jobs/handler.handler",
+          "events": [
+            {
+              "http": {
+                "path": "jobs",
+                "method": "ANY",
+                "cors": true,
+                "authorizer": {
+                  "name": "CognitoAuthorizer",
+                  "type": "COGNITO_USER_POOLS",
+                  "arn": "arn:aws:cognito-idp:us-east-1:${aws:accountId}:userpool/${self:custom.cognito.userPoolId}"
+                }
+              }
+            }
+          ]
+        },
+        "applications": {
+          "handler": "lambda/functions/applications/handler.handler",
+          "events": [
+            {
+              "http": {
+                "path": "applications",
+                "method": "ANY",
+                "cors": true,
+                "authorizer": {
+                  "name": "CognitoAuthorizer",
+                  "type": "COGNITO_USER_POOLS",
+                  "arn": "arn:aws:cognito-idp:us-east-1:${aws:accountId}:userpool/${self:custom.cognito.userPoolId}"
+                }
+              }
+            }
+          ]
+        },
+        "auth": {
+          "handler": "lambda/functions/auth/handler.handler",
+          "events": [
+            {
+              "http": {
+                "path": "auth/{proxy+}",
+                "method": "ANY",
+                "cors": true
+              }
+            }
+          ]
+        }
+      },
+      "resources": {
+        "Resources": {
+          "ProfilesTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "${self:custom.tables.profiles}",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "userId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ],
+              "GlobalSecondaryIndexes": [
+                {
+                  "IndexName": "userId-index",
+                  "KeySchema": [
+                    {
+                      "AttributeName": "userId",
+                      "KeyType": "HASH"
+                    }
+                  ],
+                  "Projection": {
+                    "ProjectionType": "ALL"
+                  },
+                  "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 5,
+                    "WriteCapacityUnits": 5
+                  }
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST"
+            }
+          },
+          "JobsTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "${self:custom.tables.jobs}",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "postedBy",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ],
+              "GlobalSecondaryIndexes": [
+                {
+                  "IndexName": "postedBy-index",
+                  "KeySchema": [
+                    {
+                      "AttributeName": "postedBy",
+                      "KeyType": "HASH"
+                    }
+                  ],
+                  "Projection": {
+                    "ProjectionType": "ALL"
+                  },
+                  "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 5,
+                    "WriteCapacityUnits": 5
+                  }
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST"
+            }
+          },
+          "ApplicationsTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "${self:custom.tables.applications}",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "userId",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "jobId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ],
+              "GlobalSecondaryIndexes": [
+                {
+                  "IndexName": "userId-index",
+                  "KeySchema": [
+                    {
+                      "AttributeName": "userId",
+                      "KeyType": "HASH"
+                    }
+                  ],
+                  "Projection": {
+                    "ProjectionType": "ALL"
+                  },
+                  "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 5,
+                    "WriteCapacityUnits": 5
+                  }
+                },
+                {
+                  "IndexName": "jobId-index",
+                  "KeySchema": [
+                    {
+                      "AttributeName": "jobId",
+                      "KeyType": "HASH"
+                    }
+                  ],
+                  "Projection": {
+                    "ProjectionType": "ALL"
+                  },
+                  "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 5,
+                    "WriteCapacityUnits": 5
+                  }
+                },
+                {
+                  "IndexName": "userId-jobId-index",
+                  "KeySchema": [
+                    {
+                      "AttributeName": "userId",
+                      "KeyType": "HASH"
+                    },
+                    {
+                      "AttributeName": "jobId",
+                      "KeyType": "RANGE"
+                    }
+                  ],
+                  "Projection": {
+                    "ProjectionType": "ALL"
+                  },
+                  "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 5,
+                    "WriteCapacityUnits": 5
+                  }
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST"
+            }
+          },
+          "AchievementsTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "${self:custom.tables.achievements}",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST"
+            }
+          },
+          "UserAchievementsTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "${self:custom.tables.userAchievements}",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "userId",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "achievementId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ],
+              "GlobalSecondaryIndexes": [
+                {
+                  "IndexName": "userId-index",
+                  "KeySchema": [
+                    {
+                      "AttributeName": "userId",
+                      "KeyType": "HASH"
+                    }
+                  ],
+                  "Projection": {
+                    "ProjectionType": "ALL"
+                  },
+                  "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 5,
+                    "WriteCapacityUnits": 5
+                  }
+                },
+                {
+                  "IndexName": "achievementId-index",
+                  "KeySchema": [
+                    {
+                      "AttributeName": "achievementId",
+                      "KeyType": "HASH"
+                    }
+                  ],
+                  "Projection": {
+                    "ProjectionType": "ALL"
+                  },
+                  "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 5,
+                    "WriteCapacityUnits": 5
+                  }
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST"
+            }
+          },
+          "SkillGapsTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "${self:custom.tables.skillGaps}",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "userId",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "jobId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ],
+              "GlobalSecondaryIndexes": [
+                {
+                  "IndexName": "userId-index",
+                  "KeySchema": [
+                    {
+                      "AttributeName": "userId",
+                      "KeyType": "HASH"
+                    }
+                  ],
+                  "Projection": {
+                    "ProjectionType": "ALL"
+                  },
+                  "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 5,
+                    "WriteCapacityUnits": 5
+                  }
+                },
+                {
+                  "IndexName": "jobId-index",
+                  "KeySchema": [
+                    {
+                      "AttributeName": "jobId",
+                      "KeyType": "HASH"
+                    }
+                  ],
+                  "Projection": {
+                    "ProjectionType": "ALL"
+                  },
+                  "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 5,
+                    "WriteCapacityUnits": 5
+                  }
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST"
+            }
+          },
+          "ResumesBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "BucketName": "talkandgrow-portal-resumes-dev",
+              "CorsConfiguration": {
+                "CorsRules": [
+                  {
+                    "AllowedHeaders": [
+                      "*"
+                    ],
+                    "AllowedMethods": [
+                      "GET",
+                      "PUT",
+                      "POST",
+                      "DELETE",
+                      "HEAD"
+                    ],
+                    "AllowedOrigins": [
+                      "*"
+                    ],
+                    "MaxAge": 3600
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "Outputs": {
+          "ApiGatewayRestApiId": {
+            "Value": {
+              "Ref": "RestApiApigw"
+            },
+            "Export": {
+              "Name": "talkandgrow-portal-api-dev-restApiId"
+            }
+          },
+          "ApiGatewayRestApiRootResourceId": {
+            "Value": {
+              "Fn::GetAtt": [
+                "RestApiApigw",
+                "RootResourceId"
+              ]
+            },
+            "Export": {
+              "Name": "talkandgrow-portal-api-dev-rootResourceId"
+            }
+          },
+          "ProfilesTableArn": {
+            "Value": {
+              "Fn::GetAtt": [
+                "ProfilesTable",
+                "Arn"
+              ]
+            },
+            "Export": {
+              "Name": "talkandgrow-portal-api-dev-profilesTableArn"
+            }
+          },
+          "JobsTableArn": {
+            "Value": {
+              "Fn::GetAtt": [
+                "JobsTable",
+                "Arn"
+              ]
+            },
+            "Export": {
+              "Name": "talkandgrow-portal-api-dev-jobsTableArn"
+            }
+          },
+          "ApplicationsTableArn": {
+            "Value": {
+              "Fn::GetAtt": [
+                "ApplicationsTable",
+                "Arn"
+              ]
+            },
+            "Export": {
+              "Name": "talkandgrow-portal-api-dev-applicationsTableArn"
+            }
+          },
+          "ResumesBucketName": {
+            "Value": {
+              "Ref": "ResumesBucket"
+            },
+            "Export": {
+              "Name": "talkandgrow-portal-api-dev-resumesBucketName"
+            }
+          }
+        }
+      },
+      "plugins": [
+        "serverless-offline"
+      ]
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "nodejs18.x",
+      "region": "us-east-1",
+      "stage": "dev",
+      "environment": {
+        "PROFILES_TABLE": "${self:custom.tables.profiles}",
+        "JOBS_TABLE": "${self:custom.tables.jobs}",
+        "APPLICATIONS_TABLE": "${self:custom.tables.applications}",
+        "ACHIEVEMENTS_TABLE": "${self:custom.tables.achievements}",
+        "USER_ACHIEVEMENTS_TABLE": "${self:custom.tables.userAchievements}",
+        "SKILL_GAPS_TABLE": "${self:custom.tables.skillGaps}",
+        "USER_POOL_ID": "${self:custom.cognito.userPoolId}",
+        "USER_POOL_CLIENT_ID": "${self:custom.cognito.userPoolClientId}",
+        "IDENTITY_POOL_ID": "${self:custom.cognito.identityPoolId}"
+      },
+      "iamRoleStatements": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "dynamodb:Query",
+            "dynamodb:Scan",
+            "dynamodb:GetItem",
+            "dynamodb:PutItem",
+            "dynamodb:UpdateItem",
+            "dynamodb:DeleteItem",
+            "dynamodb:BatchGetItem"
+          ],
+          "Resource": [
+            "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.profiles}",
+            "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.jobs}",
+            "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.applications}",
+            "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.achievements}",
+            "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.userAchievements}",
+            "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.skillGaps}",
+            "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.profiles}/index/*",
+            "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.jobs}/index/*",
+            "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.applications}/index/*",
+            "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.userAchievements}/index/*",
+            "arn:aws:dynamodb:us-east-1:*:table/${self:custom.tables.skillGaps}/index/*"
+          ]
+        }
+      ]
+    },
+    "dashboard": {
+      "isEnabledForService": false,
+      "requiredAuthentication": false,
+      "orgFeaturesInUse": null,
+      "orgObservabilityIntegrations": null,
+      "serviceAppId": null,
+      "serviceProvider": null,
+      "instanceParameters": null
+    },
+    "error": {
+      "message": "Cannot resolve '${env:USER_POOL_ID}' variable at 'custom.cognito.userPoolId'. No value is available for this variable, and no default value was provided. Please check your variable definitions or provide a default value.",
+      "stack": "Error: Cannot resolve '${env:USER_POOL_ID}' variable at 'custom.cognito.userPoolId'. No value is available for this variable, and no default value was provided. Please check your variable definitions or provide a default value.\n    at _ResolverManager.resolve (file:///C:/Users/Admin/.serverless/releases/4.19.1/package/dist/sf-core.js:711:31913)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async #handlePlaceholderNode (file:///C:/Users/Admin/.serverless/releases/4.19.1/package/dist/sf-core.js:711:30120)\n    at async file:///C:/Users/Admin/.serverless/releases/4.19.1/package/dist/sf-core.js:711:27992\n    at async processNodeAndHandleCompletion (file:///C:/Users/Admin/.serverless/releases/4.19.1/package/dist/sf-core.js:711:16771)",
+      "code": "MISSING_VARIABLE_RESULT"
+    },
+    "serviceRawFile": "service: talkandgrow-portal-api\r\n\r\nprovider:\r\n  name: aws\r\n  runtime: nodejs18.x\r\n  region: us-east-1\r\n  stage: ${opt:stage, 'dev'}\r\n  environment:\r\n    PROFILES_TABLE: ${self:custom.tables.profiles}\r\n    JOBS_TABLE: ${self:custom.tables.jobs}\r\n    APPLICATIONS_TABLE: ${self:custom.tables.applications}\r\n    ACHIEVEMENTS_TABLE: ${self:custom.tables.achievements}\r\n    USER_ACHIEVEMENTS_TABLE: ${self:custom.tables.userAchievements}\r\n    SKILL_GAPS_TABLE: ${self:custom.tables.skillGaps}\r\n    USER_POOL_ID: ${self:custom.cognito.userPoolId}\r\n    USER_POOL_CLIENT_ID: ${self:custom.cognito.userPoolClientId}\r\n    IDENTITY_POOL_ID: ${self:custom.cognito.identityPoolId}\r\n  iamRoleStatements:\r\n    - Effect: Allow\r\n      Action:\r\n        - dynamodb:Query\r\n        - dynamodb:Scan\r\n        - dynamodb:GetItem\r\n        - dynamodb:PutItem\r\n        - dynamodb:UpdateItem\r\n        - dynamodb:DeleteItem\r\n        - dynamodb:BatchGetItem\r\n      Resource:\r\n        - \"arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.profiles}\"\r\n        - \"arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.jobs}\"\r\n        - \"arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.applications}\"\r\n        - \"arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.achievements}\"\r\n        - \"arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.userAchievements}\"\r\n        - \"arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.skillGaps}\"\r\n        - \"arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.profiles}/index/*\"\r\n        - \"arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.jobs}/index/*\"\r\n        - \"arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.applications}/index/*\"\r\n        - \"arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.userAchievements}/index/*\"\r\n        - \"arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tables.skillGaps}/index/*\"\r\n\r\ncustom:\r\n  tables:\r\n    profiles: talkandgrow-portal-profiles-${self:provider.stage}\r\n    jobs: talkandgrow-portal-jobs-${self:provider.stage}\r\n    applications: talkandgrow-portal-applications-${self:provider.stage}\r\n    achievements: talkandgrow-portal-achievements-${self:provider.stage}\r\n    userAchievements: talkandgrow-portal-user-achievements-${self:provider.stage}\r\n    skillGaps: talkandgrow-portal-skill-gaps-${self:provider.stage}\r\n  cognito:\r\n    userPoolId: ${env:USER_POOL_ID}\r\n    userPoolClientId: ${env:USER_POOL_CLIENT_ID}\r\n    identityPoolId: ${env:IDENTITY_POOL_ID}\r\n\r\nfunctions:\r\n  profiles:\r\n    handler: lambda/functions/profiles/handler.handler\r\n    events:\r\n      - http:\r\n          path: profiles\r\n          method: ANY\r\n          cors: true\r\n          authorizer:\r\n            name: CognitoAuthorizer\r\n            type: COGNITO_USER_POOLS\r\n            arn: arn:aws:cognito-idp:${self:provider.region}:${aws:accountId}:userpool/${self:custom.cognito.userPoolId}\r\n\r\n  jobs:\r\n    handler: lambda/functions/jobs/handler.handler\r\n    events:\r\n      - http:\r\n          path: jobs\r\n          method: ANY\r\n          cors: true\r\n          authorizer:\r\n            name: CognitoAuthorizer\r\n            type: COGNITO_USER_POOLS\r\n            arn: arn:aws:cognito-idp:${self:provider.region}:${aws:accountId}:userpool/${self:custom.cognito.userPoolId}\r\n\r\n  applications:\r\n    handler: lambda/functions/applications/handler.handler\r\n    events:\r\n      - http:\r\n          path: applications\r\n          method: ANY\r\n          cors: true\r\n          authorizer:\r\n            name: CognitoAuthorizer\r\n            type: COGNITO_USER_POOLS\r\n            arn: arn:aws:cognito-idp:${self:provider.region}:${aws:accountId}:userpool/${self:custom.cognito.userPoolId}\r\n\r\n  auth:\r\n    handler: lambda/functions/auth/handler.handler\r\n    events:\r\n      - http:\r\n          path: auth/{proxy+}\r\n          method: ANY\r\n          cors: true\r\n\r\nresources:\r\n  Resources:\r\n    # DynamoDB Tables\r\n    ProfilesTable:\r\n      Type: AWS::DynamoDB::Table\r\n      Properties:\r\n        TableName: ${self:custom.tables.profiles}\r\n        AttributeDefinitions:\r\n          - AttributeName: id\r\n            AttributeType: S\r\n          - AttributeName: userId\r\n            AttributeType: S\r\n        KeySchema:\r\n          - AttributeName: id\r\n            KeyType: HASH\r\n        GlobalSecondaryIndexes:\r\n          - IndexName: userId-index\r\n            KeySchema:\r\n              - AttributeName: userId\r\n                KeyType: HASH\r\n            Projection:\r\n              ProjectionType: ALL\r\n            ProvisionedThroughput:\r\n              ReadCapacityUnits: 5\r\n              WriteCapacityUnits: 5\r\n        BillingMode: PAY_PER_REQUEST\r\n\r\n    JobsTable:\r\n      Type: AWS::DynamoDB::Table\r\n      Properties:\r\n        TableName: ${self:custom.tables.jobs}\r\n        AttributeDefinitions:\r\n          - AttributeName: id\r\n            AttributeType: S\r\n          - AttributeName: postedBy\r\n            AttributeType: S\r\n        KeySchema:\r\n          - AttributeName: id\r\n            KeyType: HASH\r\n        GlobalSecondaryIndexes:\r\n          - IndexName: postedBy-index\r\n            KeySchema:\r\n              - AttributeName: postedBy\r\n                KeyType: HASH\r\n            Projection:\r\n              ProjectionType: ALL\r\n            ProvisionedThroughput:\r\n              ReadCapacityUnits: 5\r\n              WriteCapacityUnits: 5\r\n        BillingMode: PAY_PER_REQUEST\r\n\r\n    ApplicationsTable:\r\n      Type: AWS::DynamoDB::Table\r\n      Properties:\r\n        TableName: ${self:custom.tables.applications}\r\n        AttributeDefinitions:\r\n          - AttributeName: id\r\n            AttributeType: S\r\n          - AttributeName: userId\r\n            AttributeType: S\r\n          - AttributeName: jobId\r\n            AttributeType: S\r\n        KeySchema:\r\n          - AttributeName: id\r\n            KeyType: HASH\r\n        GlobalSecondaryIndexes:\r\n          - IndexName: userId-index\r\n            KeySchema:\r\n              - AttributeName: userId\r\n                KeyType: HASH\r\n            Projection:\r\n              ProjectionType: ALL\r\n            ProvisionedThroughput:\r\n              ReadCapacityUnits: 5\r\n              WriteCapacityUnits: 5\r\n          - IndexName: jobId-index\r\n            KeySchema:\r\n              - AttributeName: jobId\r\n                KeyType: HASH\r\n            Projection:\r\n              ProjectionType: ALL\r\n            ProvisionedThroughput:\r\n              ReadCapacityUnits: 5\r\n              WriteCapacityUnits: 5\r\n          - IndexName: userId-jobId-index\r\n            KeySchema:\r\n              - AttributeName: userId\r\n                KeyType: HASH\r\n              - AttributeName: jobId\r\n                KeyType: RANGE\r\n            Projection:\r\n              ProjectionType: ALL\r\n            ProvisionedThroughput:\r\n              ReadCapacityUnits: 5\r\n              WriteCapacityUnits: 5\r\n        BillingMode: PAY_PER_REQUEST\r\n\r\n    AchievementsTable:\r\n      Type: AWS::DynamoDB::Table\r\n      Properties:\r\n        TableName: ${self:custom.tables.achievements}\r\n        AttributeDefinitions:\r\n          - AttributeName: id\r\n            AttributeType: S\r\n        KeySchema:\r\n          - AttributeName: id\r\n            KeyType: HASH\r\n        BillingMode: PAY_PER_REQUEST\r\n\r\n    UserAchievementsTable:\r\n      Type: AWS::DynamoDB::Table\r\n      Properties:\r\n        TableName: ${self:custom.tables.userAchievements}\r\n        AttributeDefinitions:\r\n          - AttributeName: id\r\n            AttributeType: S\r\n          - AttributeName: userId\r\n            AttributeType: S\r\n          - AttributeName: achievementId\r\n            AttributeType: S\r\n        KeySchema:\r\n          - AttributeName: id\r\n            KeyType: HASH\r\n        GlobalSecondaryIndexes:\r\n          - IndexName: userId-index\r\n            KeySchema:\r\n              - AttributeName: userId\r\n                KeyType: HASH\r\n            Projection:\r\n              ProjectionType: ALL\r\n            ProvisionedThroughput:\r\n              ReadCapacityUnits: 5\r\n              WriteCapacityUnits: 5\r\n          - IndexName: achievementId-index\r\n            KeySchema:\r\n              - AttributeName: achievementId\r\n                KeyType: HASH\r\n            Projection:\r\n              ProjectionType: ALL\r\n            ProvisionedThroughput:\r\n              ReadCapacityUnits: 5\r\n              WriteCapacityUnits: 5\r\n        BillingMode: PAY_PER_REQUEST\r\n\r\n    SkillGapsTable:\r\n      Type: AWS::DynamoDB::Table\r\n      Properties:\r\n        TableName: ${self:custom.tables.skillGaps}\r\n        AttributeDefinitions:\r\n          - AttributeName: id\r\n            AttributeType: S\r\n          - AttributeName: userId\r\n            AttributeType: S\r\n          - AttributeName: jobId\r\n            AttributeType: S\r\n        KeySchema:\r\n          - AttributeName: id\r\n            KeyType: HASH\r\n        GlobalSecondaryIndexes:\r\n          - IndexName: userId-index\r\n            KeySchema:\r\n              - AttributeName: userId\r\n                KeyType: HASH\r\n            Projection:\r\n              ProjectionType: ALL\r\n            ProvisionedThroughput:\r\n              ReadCapacityUnits: 5\r\n              WriteCapacityUnits: 5\r\n          - IndexName: jobId-index\r\n            KeySchema:\r\n              - AttributeName: jobId\r\n                KeyType: HASH\r\n            Projection:\r\n              ProjectionType: ALL\r\n            ProvisionedThroughput:\r\n              ReadCapacityUnits: 5\r\n              WriteCapacityUnits: 5\r\n        BillingMode: PAY_PER_REQUEST\r\n\r\n    # S3 Bucket for file storage\r\n    ResumesBucket:\r\n      Type: AWS::S3::Bucket\r\n      Properties:\r\n        BucketName: talkandgrow-portal-resumes-${self:provider.stage}\r\n        CorsConfiguration:\r\n          CorsRules:\r\n            - AllowedHeaders: ['*']\r\n              AllowedMethods: [GET, PUT, POST, DELETE, HEAD]\r\n              AllowedOrigins: ['*']\r\n              MaxAge: 3600\r\n\r\n  Outputs:\r\n    ApiGatewayRestApiId:\r\n      Value:\r\n        Ref: RestApiApigw\r\n      Export:\r\n        Name: ${self:service}-${self:provider.stage}-restApiId\r\n\r\n    ApiGatewayRestApiRootResourceId:\r\n      Value:\r\n        Fn::GetAtt:\r\n          - RestApiApigw\r\n          - RootResourceId\r\n      Export:\r\n        Name: ${self:service}-${self:provider.stage}-rootResourceId\r\n\r\n    ProfilesTableArn:\r\n      Value:\r\n        Fn::GetAtt:\r\n          - ProfilesTable\r\n          - Arn\r\n      Export:\r\n        Name: ${self:service}-${self:provider.stage}-profilesTableArn\r\n\r\n    JobsTableArn:\r\n      Value:\r\n        Fn::GetAtt:\r\n          - JobsTable\r\n          - Arn\r\n      Export:\r\n        Name: ${self:service}-${self:provider.stage}-jobsTableArn\r\n\r\n    ApplicationsTableArn:\r\n      Value:\r\n        Fn::GetAtt:\r\n          - ApplicationsTable\r\n          - Arn\r\n      Export:\r\n        Name: ${self:service}-${self:provider.stage}-applicationsTableArn\r\n\r\n    ResumesBucketName:\r\n      Value:\r\n        Ref: ResumesBucket\r\n      Export:\r\n        Name: ${self:service}-${self:provider.stage}-resumesBucketName\r\n\r\nplugins:\r\n  - serverless-offline\r\n",
+    "command": [
+      "deploy"
+    ],
+    "options": {},
+    "orgId": "ad88e5e9-403b-4651-bae3-5e8a3d673882",
+    "orgName": "studentx",
+    "userId": "v8x6k3m3yfR6XgK2bj",
+    "userName": "studentx",
+    "serviceProviderAwsCfStackId": null,
+    "serviceProviderAwsCfStackCreated": null,
+    "serviceProviderAwsCfStackUpdated": null,
+    "serviceProviderAwsCfStackStatus": null,
+    "serviceProviderAwsCfStackOutputs": null
+  }
+}
